@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #E4E3E0;
+    --panel: #F4F3F0;
+    --panel-subtle: #EBEAE6;
+    --ink: #141414;
+    --ink-muted: #5A5A58;
+    --line: #141414;
+    --line-subtle: rgba(20, 20, 20, 0.15);
+    --f-mono: 'JetBrains Mono', 'Courier New', ui-monospace, monospace;
+    --f-serif: 'Newsreader', Georgia, serif;
+    --f-sans: 'Plus Jakarta Sans', 'Hind Siliguri', system-ui, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--f-sans);
+  }
+
+  /* Monospace tabular utility for all financial / technical figures */
+  .font-mono-data {
+    font-family: var(--f-mono);
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .font-serif-heading {
+    font-family: var(--f-serif);
+  }
+
+  /* Technical border styling */
+  .tech-border {
+    border: 1px solid var(--line);
+  }
+  .tech-border-subtle {
+    border: 1px solid var(--line-subtle);
+  }
+  .tech-grid-table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .tech-grid-table th, 
+  .tech-grid-table td {
+    border: 1px solid var(--line-subtle);
+  }
+}
+
+/* Custom crisp technical scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #E4E3E0;
+}
+::-webkit-scrollbar-thumb {
+  background: #141414;
+  border-radius: 0px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Property & Rent Management System",
+  "description": "Comprehensive property, flat, shop, and tenant rent management system with month-based billing, payment receipts, expense tracking, cash book, and financial reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
