@@ -66,23 +66,66 @@
 }
 
 @media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   body * {
     visibility: hidden;
   }
-  #printable-area, #printable-area * {
+
+  #printable-area, #printable-area *,
+  #printable-cashbook, #printable-cashbook *,
+  #printable-statement, #printable-statement *,
+  #printable-receipt, #printable-receipt *,
+  #printable-report, #printable-report *,
+  #printable-report-modal, #printable-report-modal *,
+  .printable-content, .printable-content * {
     visibility: visible;
   }
-  #printable-area {
+
+  #printable-area,
+  #printable-cashbook,
+  #printable-statement,
+  #printable-receipt,
+  #printable-report,
+  #printable-report-modal,
+  .printable-content {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
-    background: white !important;
-    color: black !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
   }
-  .no-print {
+
+  /* Force table formatting in print */
+  .tech-grid-table th,
+  .tech-grid-table td {
+    border: 1px solid #333333 !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  nav,
+  aside,
+  header,
+  footer,
+  button,
+  .fixed.inset-0.z-50:not(:has(#printable-cashbook, #printable-statement, #printable-receipt, #printable-report, #printable-report-modal, .printable-content)) {
     display: none !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 10mm;
   }
 }

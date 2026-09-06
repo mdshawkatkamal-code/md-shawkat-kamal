@@ -4,12 +4,15 @@ export interface AppUser {
   id: string;
   name: string;
   nameBn?: string;
+  username: string;
+  password?: string;
   role: UserRole;
   email: string;
   phone: string;
   avatar?: string;
   status: 'active' | 'inactive';
   createdAt: string;
+  lastLogin?: string;
 }
 
 export type UnitType = 'flat' | 'shop';
@@ -196,8 +199,59 @@ export interface ActivityLog {
   userName: string;
   action: string;
   details: string;
-  entityType: 'flat' | 'shop' | 'tenant' | 'bill' | 'payment' | 'expense' | 'setting' | 'user' | 'cashbook';
+  entityType: 'flat' | 'shop' | 'tenant' | 'bill' | 'payment' | 'expense' | 'setting' | 'user' | 'cashbook' | 'reminder';
   entityId?: string;
+}
+
+export interface ReminderSettings {
+  enabled: boolean;
+  notifyInApp: boolean;
+  notifySMS: boolean;
+  notifyWhatsApp: boolean;
+  daysBeforeDueDate: number[]; // e.g., [5, 3, 1, 0]
+  smsTemplate: string;
+  inAppTemplate: string;
+  autoSendSMSOnDueDate: boolean;
+  smsGatewayProvider: 'device_sms' | 'ssl_wireless' | 'greenweb' | 'simulation';
+  senderPhone?: string;
+  lastAutoRunDate?: string;
+}
+
+export interface ReminderLog {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  unitNumber: string;
+  phone: string;
+  channel: 'sms' | 'in_app' | 'whatsapp';
+  sentAt: string;
+  message: string;
+  dueAmount: number;
+  dueDate: string;
+  month: string;
+  year: number;
+  status: 'sent' | 'delivered' | 'failed';
+  read?: boolean;
+}
+
+export interface TenantReminder {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  phone: string;
+  email: string;
+  unitNumber: string;
+  unitType: UnitType;
+  monthlyRent: number;
+  totalDue: number;
+  dueDate: string;
+  daysUntilDue: number;
+  status: 'approaching' | 'due_today' | 'overdue';
+  lastNotifiedAt?: string;
+  lastNotifiedChannel?: 'sms' | 'in_app' | 'whatsapp';
+  billId?: string;
+  month: string;
+  year: number;
 }
 
 export interface AppSettings {
@@ -216,4 +270,5 @@ export interface AppSettings {
   receiptNumberFormat: string; // e.g., RCT-YYYY-MM-XXXX
   financialYear: string; // e.g., 2026-2027
   openingCashBalance: number;
+  reminderSettings?: ReminderSettings;
 }

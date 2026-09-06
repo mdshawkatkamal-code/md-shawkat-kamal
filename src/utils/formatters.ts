@@ -35,6 +35,26 @@ export function toBengaliNumber(num: number | string): string {
   return str.replace(/[0-9]/g, (w) => BENGALI_DIGITS[+w]);
 }
 
+export function parseNumber(input: string | number | undefined | null): number {
+  if (input === undefined || input === null) return 0;
+  if (typeof input === 'number') return isNaN(input) ? 0 : input;
+  if (!input.toString().trim()) return 0;
+
+  const bengaliMap: Record<string, string> = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+    ',': '', '৳': '', ' ': ''
+  };
+
+  let cleaned = String(input);
+  for (const [bn, en] of Object.entries(bengaliMap)) {
+    cleaned = cleaned.replaceAll(bn, en);
+  }
+
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? 0 : val;
+}
+
 export function formatCurrency(
   amount: number,
   options?: { showSymbol?: boolean; useBengaliDigits?: boolean }

@@ -280,17 +280,26 @@ export const FlatsView: React.FC = () => {
                 {/* Pricing info */}
                 <div className="mt-2.5 space-y-1 text-xs font-mono-data">
                   <div className="flex items-center justify-between text-[#141414]/80 font-medium">
-                    <span>মূল ভাড়া:</span>
+                    <span>{isOccupied ? 'মূল ভাড়া:' : 'ধার্যকৃত ভাড়া:'}</span>
                     <span className="text-[#141414] font-bold">{formatCurrency(flat.rent)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[#141414]/60 text-[11px]">
-                    <span>ইউটিলিটি:</span>
-                    <span>+{formatCurrency(totalCharges)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[#141414] font-bold text-xs pt-1 border-t border-[#141414]/20">
-                    <span>মোট বিল:</span>
-                    <span className="text-[#144A29]">{formatCurrency(flat.rent + totalCharges)}</span>
-                  </div>
+                  {isOccupied ? (
+                    <>
+                      <div className="flex items-center justify-between text-[#141414]/60 text-[11px]">
+                        <span>ইউটিলিটি:</span>
+                        <span>+{formatCurrency(totalCharges)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[#141414] font-bold text-xs pt-1 border-t border-[#141414]/20">
+                        <span>মোট বিল:</span>
+                        <span className="text-[#144A29]">{formatCurrency(flat.rent + totalCharges)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between text-[#805000] font-bold text-xs pt-1 border-t border-[#141414]/20 bg-[#FFF8EE] px-1.5 py-0.5">
+                      <span>মাসিক বিল:</span>
+                      <span className="text-[#805000]">৳০ ({isVacant ? 'খালি' : 'সংরক্ষিত'})</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

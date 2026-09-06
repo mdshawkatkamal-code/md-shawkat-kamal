@@ -24,6 +24,7 @@ import {
   Home,
   Store,
   FileText,
+  Smartphone,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -47,6 +48,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ initialSubTab = 'month
     setActiveTab,
     setSelectedReceiptModal,
     currentUser,
+    settings,
   } = useApp();
 
   const isOwner = currentUser.role === 'owner';
@@ -82,7 +84,7 @@ export const BillingView: React.FC<BillingViewProps> = ({ initialSubTab = 'month
       });
     }
     alert(
-      `মাসিক বিল তৈরি সম্পন্ন!\n• সফলভাবে তৈরি হয়েছে: ${result.generatedCount} টি বিল\n• আগে থেকে বিদ্যমান ছিল: ${result.skippedCount} টি\nমাস: ${MONTHS_BN[selectedMonth] || selectedMonth} ${selectedYear}`
+      `স্বয়ংক্রিয় মাসিক বিল তৈরি সম্পন্ন!\n• সফলভাবে তৈরি হয়েছে: ${result.generatedCount} টি বিল (ভাড়াকৃত ইউনিট)\n• খালি ও সংরক্ষিত ইউনিট: ${result.vacantCount} টি (বিল ৳০ হিসাবে গণ্য)\n• পূর্বে তৈরি ছিল: ${result.skippedCount} টি\nমাস: ${MONTHS_BN[selectedMonth] || selectedMonth} ${selectedYear}`
     );
     setCurrentSubTab('monthly');
   };
@@ -263,49 +265,75 @@ export const BillingView: React.FC<BillingViewProps> = ({ initialSubTab = 'month
       </div>
 
       {/* Subtab Content 1: Generate Bills View (Requirement 5) */}
-      {currentSubTab === 'generate' && (
-        <div className="bg-[#F4F3F0] p-6 border border-[#141414] text-center max-w-2xl mx-auto space-y-4 font-mono-data">
-          <div className="w-12 h-12 bg-[#141414] text-[#E4E3E0] flex items-center justify-center mx-auto border border-[#141414]">
-            <Sparkles className="w-6 h-6" />
-          </div>
+      {currentSubTab === 'generate' && (() => {
+        const occupiedFlatsCount = flats.filter((f) => f.status === 'occupied').length;
+        const vacantOrReservedFlats = flats.filter((f) => f.status === 'vacant' || f.status === 'reserved').length;
+        const occupiedShopsCount = shops.filter((s) => s.status === 'occupied').length;
+        const vacantOrReservedShops = shops.filter((s) => s.status === 'vacant' || s.status === 'reserved').length;
+        const totalOccupied = occupiedFlatsCount + occupiedShopsCount;
+        const totalVacantOrReserved = vacantOrReservedFlats + vacantOrReservedShops;
 
-          <div>
-            <h3 className="text-base font-serif-heading font-bold text-[#141414]">
-              স্বয়ংক্রিয় মাসিক বিল তৈরি (Automatic Monthly Bill)
-            </h3>
-            <p className="text-xs text-[#141414]/70 mt-1 max-w-md mx-auto">
-              সিস্টেম স্বয়ংক্রিয়ভাবে সব Active Flat এবং Shop-এর জন্য নির্ধারিত বাড়িভাড়া ও ডিফল্ট ইউটিলিটি চার্জ অনুযায়ী বিল তৈরি করবে।
-            </p>
-          </div>
+        return (
+          <div className="bg-[#F4F3F0] p-6 border border-[#141414] text-center max-w-2xl mx-auto space-y-4 font-mono-data">
+            <div className="w-12 h-12 bg-[#141414] text-[#E4E3E0] flex items-center justify-center mx-auto border border-[#141414]">
+              <Sparkles className="w-6 h-6" />
+            </div>
 
-          <div className="bg-[#EBEAE6] p-3.5 border border-[#141414]/30 max-w-md mx-auto text-left space-y-2 text-xs">
-            <div className="flex items-center justify-between text-[#141414]">
-              <span>বিল তৈরির মাস:</span>
-              <strong className="text-[#141414] font-bold">
-                {MONTHS_BN[selectedMonth] || selectedMonth} {selectedYear}
-              </strong>
+            <div>
+              <h3 className="text-base font-serif-heading font-bold text-[#141414]">
+                স্বয়ংক্রিয় মাসিক বিল তৈরি (Automatic Monthly Bill)
+              </h3>
+              <p className="text-xs text-[#141414]/70 mt-1 max-w-md mx-auto">
+                সিস্টেম শুধুমাত্র সক্রিয় ভাড়াকৃত (Occupied) ইউনিটের জন্য নির্ধারিত বাড়িভাড়া ও চার্জ অনুযায়ী বিল তৈরি করবে।
+              </p>
             </div>
-            <div className="flex items-center justify-between text-[#141414]">
-              <span>সক্রিয় ভাড়াটিয়া সংখ্যা:</span>
-              <strong className="font-bold text-[#141414]">{tenants.filter((t) => t.status === 'active').length} জন</strong>
-            </div>
-            <div className="flex items-center justify-between text-[#141414]">
-              <span>বিলের নির্ধারিত পরিশোধের তারিখ:</span>
-              <span className="font-bold text-[#141414]">{selectedYear}-08-10</span>
-            </div>
-          </div>
 
-          <div className="pt-2">
-            <button
-              onClick={handleBatchGenerate}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] transition-colors cursor-pointer"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Generate Bills → {selectedMonth} {selectedYear}</span>
-            </button>
+            {/* Occupancy and Zero Bill breakdown info */}
+            <div className="grid grid-cols-2 gap-2 text-left text-xs max-w-md mx-auto">
+              <div className="bg-[#E2EFE7] p-2.5 border border-[#144A29]/30">
+                <span className="text-[10px] uppercase font-bold text-[#144A29]">ভাড়াকৃত ইউনিট (Occupied)</span>
+                <p className="text-sm font-bold text-[#144A29] mt-0.5">{toBengaliNumber(totalOccupied)} টি</p>
+                <span className="text-[10px] text-[#144A29]/80">স্বয়ংক্রিয় বিল তৈরি হবে</span>
+              </div>
+              <div className="bg-[#FFF8EE] p-2.5 border border-[#805000]/30">
+                <span className="text-[10px] uppercase font-bold text-[#805000]">খালি / সংরক্ষিত (Vacant)</span>
+                <p className="text-sm font-bold text-[#805000] mt-0.5">{toBengaliNumber(totalVacantOrReserved)} টি</p>
+                <span className="text-[10px] text-[#805000]/90">বিল ৳০ (কোনো বিল হবে না)</span>
+              </div>
+            </div>
+
+            <div className="bg-[#EBEAE6] p-3.5 border border-[#141414]/30 max-w-md mx-auto text-left space-y-2 text-xs">
+              <div className="flex items-center justify-between text-[#141414]">
+                <span>বিল তৈরির মাস:</span>
+                <strong className="text-[#141414] font-bold">
+                  {MONTHS_BN[selectedMonth] || selectedMonth} {selectedYear}
+                </strong>
+              </div>
+              <div className="flex items-center justify-between text-[#141414]">
+                <span>সক্রিয় ভাড়াটিয়া সংখ্যা:</span>
+                <strong className="font-bold text-[#141414]">{tenants.filter((t) => t.status === 'active').length} জন</strong>
+              </div>
+              <div className="flex items-center justify-between text-[#141414]">
+                <span>বিলের নির্ধারিত পরিশোধের তারিখ:</span>
+                <span className="font-bold text-[#141414]">{selectedYear}-08-10</span>
+              </div>
+              <div className="text-[11px] text-[#805000] bg-[#FFF8EE] p-2 border border-[#805000]/20 font-medium">
+                ⚠️ দ্রষ্টব্য: খালি ফ্ল্যাট ও দোকানসমূহের কোনো বিল তৈরি হবে না (বিল ৳০ হিসাবে গণ্য)।
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={handleBatchGenerate}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] transition-colors cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Generate Bills → {selectedMonth} {selectedYear}</span>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Subtab Content: Monthly / Unpaid / Overdue Bills Table */}
       {currentSubTab !== 'generate' && (
@@ -378,8 +406,32 @@ export const BillingView: React.FC<BillingViewProps> = ({ initialSubTab = 'month
                 <tbody className="divide-y divide-[#141414]/15 text-[#141414]">
                   {filteredBills.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-[#141414]/50">
-                        কোন বিল পাওয়া যায়নি। স্বয়ংক্রিয় বিল জেনারেটর ব্যবহার করে বিল তৈরি করুন।
+                      <td colSpan={8} className="text-center py-10 text-[#141414]/70">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <FileSpreadsheet className="w-8 h-8 text-[#141414]/30" />
+                          <span className="font-bold text-sm text-[#141414]">
+                            {MONTHS_BN[selectedMonth] || selectedMonth} {selectedYear} মাসের কোনো বিল নেই (হিসাব ০)।
+                          </span>
+                          <p className="text-xs text-[#141414]/60 max-w-sm">
+                            আপনি চাইলে স্বয়ংক্রিয়ভাবে সমস্ত অ্যাক্টিভ ফ্ল্যাট ও দোকানের জন্য এক ক্লিকে বিল জেনারেট করতে পারেন অথবা নতুন ম্যানুয়াল বিল তৈরি করতে পারেন।
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() => setCurrentSubTab('generate')}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#141414] hover:bg-[#2A2A28] text-[#E4E3E0] font-bold text-xs cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>স্বয়ংক্রিয় বিল তৈরি করুন</span>
+                            </button>
+                            <button
+                              onClick={() => setIsManualModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#DDDCD7] hover:bg-[#C8C7C2] text-[#141414] font-bold text-xs border border-[#141414] cursor-pointer"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5" />
+                              <span>ম্যানুয়াল বিল</span>
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -443,14 +495,24 @@ export const BillingView: React.FC<BillingViewProps> = ({ initialSubTab = 'month
                           <td className="px-3.5 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {bill.dueAmount > 0 && (
-                                <button
-                                  onClick={() => setActiveTab('payments-add')}
-                                  className="px-2 py-1 text-xs font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] flex items-center gap-1 cursor-pointer"
-                                  title="ভাড়া আদায় করুন"
-                                >
-                                  <CreditCard className="w-3.5 h-3.5" />
-                                  <span>আদায়</span>
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => setActiveTab('payments-add')}
+                                    className="px-2 py-1 text-xs font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] flex items-center gap-1 cursor-pointer"
+                                    title="ভাড়া আদায় করুন"
+                                  >
+                                    <CreditCard className="w-3.5 h-3.5" />
+                                    <span>আদায়</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setActiveTab('reminders')}
+                                    className="px-2 py-1 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 flex items-center gap-1 cursor-pointer"
+                                    title="এসএমএস ও রিমাইন্ডার পাঠান"
+                                  >
+                                    <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>SMS</span>
+                                  </button>
+                                </>
                               )}
 
                               <button
@@ -648,8 +710,8 @@ export const BillingView: React.FC<BillingViewProps> = ({ initialSubTab = 'month
             {/* Printable Invoice Body */}
             <div id="printable-area" className="py-4 space-y-3.5 text-xs font-mono-data">
               <div className="text-center pb-3 border-b border-[#141414]/20">
-                <h2 className="text-base font-serif-heading font-bold text-[#141414]">নূর টাওয়ার কমার্শিয়াল ও রেসিডেন্সিয়াল</h2>
-                <p className="text-[11px] text-[#141414]/60">উত্তরা, ঢাকা-১২৩০ • ফোন: +৮৮০ ১৭১১-২৩৪৫৬৭</p>
+                <h2 className="text-base font-serif-heading font-bold text-[#141414]">{settings.propertyNameBn || 'তুলতুল ভিলা'}</h2>
+                <p className="text-[11px] text-[#141414]/60">{settings.address || 'উত্তরা, ঢাকা-১২৩০'} • ফোন: {settings.phone || '+৮৮০ ১৭১১-২৩৪৫৬৭'}</p>
                 <div className="inline-block mt-2 px-2.5 py-0.5 bg-[#EBEAE6] border border-[#141414]/30 font-bold text-[#141414]">
                   মাসিক বিল — {MONTHS_BN[selectedBillForView.month]} {selectedBillForView.year}
                 </div>

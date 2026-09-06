@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AppSettings } from '../../types';
+import { MONTHS, MONTHS_BN } from '../../utils/formatters';
 import {
   Settings as SettingsIcon,
   Building2,
@@ -14,15 +15,30 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileSpreadsheet,
+  Trash2,
+  Bell,
+  Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const SettingsView: React.FC = () => {
-  const { settings, updateSettings, resetToDefaultData, currentUser } = useApp();
+  const {
+    settings,
+    updateSettings,
+    resetToDefaultData,
+    clearMonthData,
+    selectedMonth,
+    selectedYear,
+    currentUser,
+    setActiveTab,
+  } = useApp();
   const isOwner = currentUser.role === 'owner';
 
   const [formData, setFormData] = useState<AppSettings>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [monthToClear, setMonthToClear] = useState<string>(selectedMonth);
+  const [yearToClear, setYearToClear] = useState<number>(selectedYear);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +112,18 @@ export const SettingsView: React.FC = () => {
     }
   };
 
+  const handleClearMonth = () => {
+    const monthNameBn = MONTHS_BN[monthToClear] || monthToClear;
+    if (
+      confirm(
+        `সতর্কতা: আপনি কি নিশ্চিত যে ${monthNameBn} ${yearToClear} মাসের সমস্ত বিল, আদায় ও খরচের হিসাব ০ (রিসেট) করতে চান? ফ্ল্যাট, দোকান ও ভাড়াটিয়া অক্ষত থাকবে।`
+      )
+    ) {
+      clearMonthData(monthToClear, yearToClear);
+      alert(`${monthNameBn} ${yearToClear} মাসের বিল ও খরচের হিসাব সফলভাবে ০ করা হয়েছে!`);
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-4xl mx-auto font-sans">
       {/* Header */}
@@ -131,7 +159,6 @@ export const SettingsView: React.FC = () => {
             <input
               type="text"
               required
-              disabled={!isOwner}
               value={formData.propertyName}
               onChange={(e) => setFormData({ ...formData, propertyName: e.target.value })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-bold text-[#141414] outline-none focus:border-[#141414]"
@@ -143,7 +170,6 @@ export const SettingsView: React.FC = () => {
             <input
               type="text"
               required
-              disabled={!isOwner}
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-medium text-[#141414] outline-none focus:border-[#141414]"
@@ -154,7 +180,6 @@ export const SettingsView: React.FC = () => {
             <label className="block font-bold text-[#141414] mb-1">অফিসিয়াল যোগাযোগ মোবাইল</label>
             <input
               type="text"
-              disabled={!isOwner}
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-medium text-[#141414] outline-none focus:border-[#141414]"
@@ -165,7 +190,6 @@ export const SettingsView: React.FC = () => {
             <label className="block font-bold text-[#141414] mb-1">অফিসিয়াল ইমেইল</label>
             <input
               type="email"
-              disabled={!isOwner}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-medium text-[#141414] outline-none focus:border-[#141414]"
@@ -187,7 +211,6 @@ export const SettingsView: React.FC = () => {
               type="number"
               min="1"
               max="28"
-              disabled={!isOwner}
               value={formData.defaultRentDueDate}
               onChange={(e) => setFormData({ ...formData, defaultRentDueDate: Number(e.target.value) })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-bold text-[#141414] outline-none focus:border-[#141414]"
@@ -202,7 +225,6 @@ export const SettingsView: React.FC = () => {
             <input
               type="number"
               min="0"
-              disabled={!isOwner}
               value={formData.lateFee}
               onChange={(e) => setFormData({ ...formData, lateFee: Number(e.target.value) })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-bold text-[#141414] outline-none focus:border-[#141414]"
@@ -213,7 +235,6 @@ export const SettingsView: React.FC = () => {
             <label className="block font-bold text-[#141414] mb-1">মুদ্রা প্রতীক (Currency)</label>
             <input
               type="text"
-              disabled={!isOwner}
               value={formData.currencySymbol}
               onChange={(e) => setFormData({ ...formData, currencySymbol: e.target.value })}
               className="w-full px-3 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-bold text-[#141414] outline-none focus:border-[#141414]"
@@ -221,17 +242,92 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        {isOwner && (
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#141414] hover:bg-[#2A2A28] text-[#E4E3E0] font-bold border border-[#141414] cursor-pointer"
-            >
-              <Save className="w-4 h-4" />
-              <span>সেটিংস পরিবর্তন সংরক্ষণ করুন</span>
-            </button>
+        {/* Automatic Reminders & SMS Settings Section */}
+        <h3 className="text-sm font-serif-heading font-bold text-[#141414] pt-3 pb-2 border-b border-[#141414]/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-emerald-800" />
+            <span>স্বয়ংক্রিয় এসএমএস ও নোটিফিকেশন রিমাইন্ডার (Automatic Reminders)</span>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setActiveTab('reminders')}
+            className="text-xs font-mono-data font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer"
+          >
+            <span>সম্পূর্ণ রিমাইন্ডার মডিউলে যান</span>
+            <ExternalLink className="w-3 h-3" />
+          </button>
+        </h3>
+
+        <div className="p-3 bg-[#EBEAE6] border border-[#141414]/20 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-bold text-xs text-[#141414]">স্বয়ংক্রিয় রিমাইন্ডার ইঞ্জিন সক্রিয়</span>
+              <p className="text-[11px] text-[#141414]/70">ভাড়া পরিশোধের তারিখের পূর্বে স্বয়ংক্রিয়ভাবে নোটিশ তৈরি করবে</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.reminderSettings?.enabled ?? true}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  reminderSettings: {
+                    ...(formData.reminderSettings || {}),
+                    enabled: e.target.checked,
+                  } as any,
+                })
+              }
+              className="w-4 h-4 text-emerald-700 cursor-pointer"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-[#141414]/10">
+            <label className="flex items-center gap-2 text-xs font-medium text-[#141414] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.reminderSettings?.notifyInApp ?? true}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    reminderSettings: {
+                      ...(formData.reminderSettings || {}),
+                      notifyInApp: e.target.checked,
+                    } as any,
+                  })
+                }
+                className="w-3.5 h-3.5 text-emerald-700"
+              />
+              <span>ইন-অ্যাপ নোটিফিকেশন অ্যালার্ট সক্রিয়</span>
+            </label>
+
+            <label className="flex items-center gap-2 text-xs font-medium text-[#141414] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.reminderSettings?.notifySMS ?? true}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    reminderSettings: {
+                      ...(formData.reminderSettings || {}),
+                      notifySMS: e.target.checked,
+                    } as any,
+                  })
+                }
+                className="w-3.5 h-3.5 text-emerald-700"
+              />
+              <span>মোবাইল SMS বার্তা প্রেরণ সক্রিয়</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="pt-2 flex justify-end">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#141414] hover:bg-[#2A2A28] text-[#E4E3E0] font-bold border border-[#141414] cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>সেটিংস পরিবর্তন সংরক্ষণ করুন</span>
+          </button>
+        </div>
       </form>
 
       {/* Backup, Restore & Reset Section */}
@@ -277,23 +373,63 @@ export const SettingsView: React.FC = () => {
             </label>
           </div>
 
-          {isOwner && (
-            <div className="p-3.5 bg-[#FCE8E8] border border-[#801414] flex flex-col justify-between">
-              <div>
-                <h4 className="font-bold text-[#801414] mb-1">ডেমো ডেটা রিসেট</h4>
-                <p className="text-[11px] text-[#801414]/80">
-                  সিস্টেমের সকল ৮০টি ফ্ল্যাট ও ২০টি দোকানের প্রাথমিক ডেমো ডেটায় ফিরে যান।
-                </p>
-              </div>
-              <button
-                onClick={handleReset}
-                className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#801414] hover:bg-[#5C0E0E] text-white font-bold border border-[#801414] cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Reset to Seed Data</span>
-              </button>
+          <div className="p-3.5 bg-[#FCE8E8] border border-[#801414] flex flex-col justify-between">
+            <div>
+              <h4 className="font-bold text-[#801414] mb-1">ডেমো ডেটা রিসেট</h4>
+              <p className="text-[11px] text-[#801414]/80">
+                সিস্টেমের সকল ৮০টি ফ্ল্যাট ও ২০টি দোকানের প্রাথমিক ডেমো ডেটায় ফিরে যান।
+              </p>
             </div>
-          )}
+            <button
+              onClick={handleReset}
+              className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#801414] hover:bg-[#5C0E0E] text-white font-bold border border-[#801414] cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Reset to Seed Data</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Month-specific clear section */}
+        <div className="mt-4 p-4 bg-[#FFF8EE] border border-[#B38000]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h4 className="font-bold text-[#805000] flex items-center gap-1.5">
+              <Trash2 className="w-4 h-4 text-[#805000]" />
+              <span>নির্দিষ্ট মাসের বিল ও খরচের হিসাব ০ (রিসেট) করুন</span>
+            </h4>
+            <p className="text-[11px] text-[#805000]/80 mt-0.5">
+              নির্বাচিত মাসের সমস্ত বিল, আদায় ও খরচের হিসাব ০ হয়ে যাবে। ফ্ল্যাট, দোকান ও ভাড়াটিয়ার তালিকা সম্পূর্ণ সংরক্ষিত থাকবে।
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={monthToClear}
+              onChange={(e) => setMonthToClear(e.target.value)}
+              className="px-2 py-1.5 bg-white border border-[#141414]/40 font-bold text-xs"
+            >
+              {MONTHS.map((m) => (
+                <option key={m} value={m}>
+                  {MONTHS_BN[m]}
+                </option>
+              ))}
+            </select>
+            <select
+              value={yearToClear}
+              onChange={(e) => setYearToClear(Number(e.target.value))}
+              className="px-2 py-1.5 bg-white border border-[#141414]/40 font-bold text-xs"
+            >
+              <option value={2025}>২০২৫</option>
+              <option value={2026}>২০২৬</option>
+              <option value={2027}>২০২৭</option>
+            </select>
+            <button
+              onClick={handleClearMonth}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#801414] hover:bg-[#5C0E0E] text-white font-bold text-xs border border-[#801414] cursor-pointer whitespace-nowrap"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>হিসাব ০ করুন</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

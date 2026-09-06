@@ -23,20 +23,10 @@ import {
   ArrowDownRight,
   Clock,
   Sparkles,
+  Bell,
+  Smartphone,
+  Send,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Legend,
-} from 'recharts';
-
 export const DashboardView: React.FC = () => {
   const {
     flats,
@@ -51,6 +41,8 @@ export const DashboardView: React.FC = () => {
     generateMonthlyBills,
     currentUser,
     setSelectedReceiptModal,
+    approachingReminders,
+    reminderSettings,
   } = useApp();
 
   const isOwner = currentUser.role === 'owner';
@@ -84,25 +76,6 @@ export const DashboardView: React.FC = () => {
 
   const totalTenants = tenants.filter((t) => t.status === 'active').length;
 
-  // Multi-Month Income trend data
-  const monthlyChartData = [
-    { monthEn: 'January', monthBn: 'জানুয়ারি', bill: 480000, income: 420000, expense: 110000, net: 310000 },
-    { monthEn: 'February', monthBn: 'ফেব্রুয়ারি', bill: 490000, income: 450000, expense: 115000, net: 335000 },
-    { monthEn: 'March', monthBn: 'মার্চ', bill: 500000, income: 480000, expense: 125000, net: 355000 },
-    { monthEn: 'April', monthBn: 'এপ্রিল', bill: 520000, income: 510000, expense: 130000, net: 380000 },
-    { monthEn: 'May', monthBn: 'মে', bill: 525000, income: 520000, expense: 122000, net: 398000 },
-    { monthEn: 'June', monthBn: 'জুন', bill: 530000, income: 530000, expense: 128000, net: 402000 },
-    { monthEn: 'July', monthBn: 'জুলাই', bill: 540000, income: 540000, expense: 135000, net: 405000 },
-    {
-      monthEn: 'August',
-      monthBn: 'আগস্ট',
-      bill: totalBillsAmount || 500000,
-      income: totalCollectedAmount || 420000,
-      expense: totalExpenseAmount || 120000,
-      net: netIncome || 300000,
-    },
-  ];
-
   // Outstanding due items
   const outstandingBills = currentMonthBills
     .filter((b) => b.dueAmount > 0)
@@ -112,7 +85,7 @@ export const DashboardView: React.FC = () => {
   const handleAutoGenerate = () => {
     const res = generateMonthlyBills(selectedMonth, selectedYear);
     alert(
-      `স্বয়ংক্রিয় বিল তৈরি সম্পন্ন!\n• সফলভাবে তৈরি হয়েছে: ${res.generatedCount} টি বিল\n• পূর্বেই তৈরি ছিল: ${res.skippedCount} টি\nমাস: ${MONTHS_BN[selectedMonth] || selectedMonth} ${selectedYear}`
+      `স্বয়ংক্রিয় মাসিক বিল তৈরি সম্পন্ন!\n• সফলভাবে বিল তৈরি হয়েছে: ${res.generatedCount} টি (ভাড়াকৃত ইউনিট)\n• খালি/সংরক্ষিত ইউনিট: ${res.vacantCount} টি (বিল ৳০ হিসাবে গণ্য)\n• পূর্বে তৈরি ছিল: ${res.skippedCount} টি\nমাস: ${MONTHS_BN[selectedMonth] || selectedMonth} ${selectedYear}`
     );
   };
 
@@ -164,9 +137,53 @@ export const DashboardView: React.FC = () => {
               <Receipt className="w-3.5 h-3.5" />
               <span>ভাড়া আদায় এন্ট্রি</span>
             </button>
+            <button
+              onClick={() => setActiveTab('expenses-add')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#801414] bg-[#FCE8E8] hover:bg-[#FFFFFF] border border-[#801414]/50 transition-colors cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-[#801414]" />
+              <span>খরচ যোগ করুন</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Approaching Rent Reminders Banner */}
+      {approachingReminders.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 via-amber-100/50 to-emerald-50 border border-amber-300/80 p-3.5 sm:p-4 rounded-xl shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Bell className="w-5 h-5 animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-amber-950">
+                    আসন্ন ভাড়া পরিশোধ সতর্কতা ({toBengaliNumber(approachingReminders.length)} জন ভাড়াটিয়া)
+                  </h3>
+                  <span className="text-[10px] font-bold bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">
+                    তারিখ আসন্ন
+                  </span>
+                </div>
+                <p className="text-xs text-amber-900/80 mt-0.5">
+                  আগামী কয়েকদিনের মধ্যে নির্ধারিত ভাড়া পরিশোধের শেষ তারিখ। স্বয়ংক্রিয় SMS বা নোটিশ পাঠিয়ে দ্রুত ভাড়া নিশ্চিত করুন।
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('reminders')}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-amber-800 hover:bg-amber-900 text-white rounded-lg shadow-xs transition-colors"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>রিমাইন্ডার ও SMS পাঠান</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Technical Data Grid: Key Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
@@ -327,49 +344,6 @@ export const DashboardView: React.FC = () => {
             <TrendingUp className="w-3.5 h-3.5" />
             <span>আদায় − খরচ = নিট আয়</span>
           </div>
-        </div>
-      </div>
-
-      {/* Monthly Income Chart (মাসিক আয়ের চার্ট) */}
-      <div className="bg-[#F4F3F0] p-4 sm:p-5 border border-[#141414]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-[#141414]/20">
-          <div>
-            <h3 className="text-base font-serif-heading font-bold text-[#141414] flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#141414]" />
-              <span>মাসিক আয় ও মুনাফা চার্ট (Monthly Income &amp; Net Profit Chart - ২০২৬)</span>
-            </h3>
-            <p className="text-xs font-mono-data text-[#141414]/70 mt-0.5">
-              Jan: ৳4,20,000 | Feb: ৳4,50,000 | Mar: ৳4,80,000 | Apr: ৳5,10,000 | Aug: {formatCurrency(totalCollectedAmount)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono-data font-bold px-2 py-0.5 bg-[#DDDCD7] text-[#141414] border border-[#141414]/40">
-              FY: ২০২৬ (2026)
-            </span>
-          </div>
-        </div>
-
-        <div className="h-64 w-full pt-1">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="rgba(20,20,20,0.15)" />
-              <XAxis dataKey="monthBn" tickLine={false} tick={{ fill: '#141414', fontSize: 11, fontFamily: 'var(--f-mono)' }} />
-              <YAxis
-                tickLine={false}
-                tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`}
-                tick={{ fill: '#141414', fontSize: 10, fontFamily: 'var(--f-mono)' }}
-              />
-              <Tooltip
-                formatter={(value: any) => [formatCurrency(Number(value)), '']}
-                labelFormatter={(label) => `মাস: ${label} ২০২৬`}
-                contentStyle={{ backgroundColor: '#141414', borderColor: '#141414', borderRadius: '0px', color: '#E4E3E0', fontSize: '11px', fontFamily: 'var(--f-mono)' }}
-              />
-              <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'var(--f-mono)', paddingTop: '8px' }} />
-              <Bar dataKey="income" name="আদায় (Income)" fill="#141414" />
-              <Bar dataKey="expense" name="খরচ (Expense)" fill="#801414" />
-              <Bar dataKey="net" name="নিট লাভ (Net Income)" fill="#144A29" />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
       </div>
 

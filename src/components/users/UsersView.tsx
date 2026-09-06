@@ -97,15 +97,13 @@ export const UsersView: React.FC = () => {
           </p>
         </div>
 
-        {isOwner && (
-          <button
-            onClick={openAddModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono-data font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>নতুন ম্যানেজার তৈরি করুন</span>
-          </button>
-        )}
+        <button
+          onClick={openAddModal}
+          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono-data font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>নতুন ইউজার / ম্যানেজার তৈরি করুন</span>
+        </button>
       </div>
 
       {/* Role explanation cards */}
@@ -230,26 +228,24 @@ export const UsersView: React.FC = () => {
                   <td className="px-3.5 py-2.5 text-[#141414]/70">{u.createdAt}</td>
 
                   <td className="px-3.5 py-2.5 text-right">
-                    {isOwner && (
-                      <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => openEditModal(u)}
+                        className="p-1 text-[#141414] hover:bg-[#EBEAE6] border border-transparent hover:border-[#141414]/40 cursor-pointer"
+                        title="সম্পাদনা"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {u.id !== currentUser.id && (
                         <button
-                          onClick={() => openEditModal(u)}
-                          className="p-1 text-[#141414] hover:bg-[#EBEAE6] border border-transparent hover:border-[#141414]/40 cursor-pointer"
-                          title="সম্পাদনা"
+                          onClick={() => handleDelete(u)}
+                          className="p-1 text-[#801414] hover:bg-[#FCE8E8] border border-transparent hover:border-[#801414]/40 cursor-pointer"
+                          title="মুছে ফেলুন"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        {u.id !== currentUser.id && (
-                          <button
-                            onClick={() => handleDelete(u)}
-                            className="p-1 text-[#801414] hover:bg-[#FCE8E8] border border-transparent hover:border-[#801414]/40 cursor-pointer"
-                            title="মুছে ফেলুন"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -294,7 +290,7 @@ export const UsersView: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="manager@noortowerbd.com"
+                  placeholder="manager@tultulvilla.com"
                   className="w-full px-2.5 py-1.5 bg-[#EBEAE6] border border-[#141414]/40 font-medium text-[#141414] outline-none focus:border-[#141414]"
                 />
               </div>

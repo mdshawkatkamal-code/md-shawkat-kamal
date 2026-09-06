@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#141414"/>
+  <rect x="48" y="48" width="416" height="416" rx="64" fill="#202020" stroke="#383838" stroke-width="6"/>
+  
+  <!-- Building Silhouette -->
+  <path d="M120 400 V160 H260 V400 Z" fill="#E4E3E0" stroke="#141414" stroke-width="4"/>
+  <path d="M260 220 H392 V400 H260 Z" fill="#D2E3D8" stroke="#141414" stroke-width="4"/>
+  
+  <!-- Windows -->
+  <rect x="148" y="190" width="36" height="36" rx="4" fill="#141414"/>
+  <rect x="196" y="190" width="36" height="36" rx="4" fill="#141414"/>
+  <rect x="148" y="246" width="36" height="36" rx="4" fill="#141414"/>
+  <rect x="196" y="246" width="36" height="36" rx="4" fill="#141414"/>
+  <rect x="148" y="302" width="36" height="36" rx="4" fill="#141414"/>
+  <rect x="196" y="302" width="36" height="36" rx="4" fill="#141414"/>
+
+  <!-- Shop Windows / Door -->
+  <rect x="288" y="250" width="32" height="32" rx="4" fill="#141414"/>
+  <rect x="336" y="250" width="32" height="32" rx="4" fill="#141414"/>
+  <rect x="288" y="310" width="80" height="90" rx="4" fill="#141414"/>
+  
+  <!-- Bengali Taka / Currency Symbol or Badge -->
+  <circle cx="390" cy="140" r="54" fill="#EBDCB2" stroke="#8C6600" stroke-width="8"/>
+  <text x="390" y="158" font-size="52" font-family="sans-serif" font-weight="900" text-anchor="middle" fill="#5C4300">৳</text>
+  
+  <!-- Ground Line -->
+  <rect x="80" y="400" width="352" height="12" rx="6" fill="#E4E3E0"/>
+</svg>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PWAInstallButton } from '../pwa/PWAInstallButton';
 import {
   LayoutDashboard,
   Building,
@@ -27,10 +28,11 @@ import {
   ChevronRight,
   Shield,
   Layers,
+  Bell,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, currentUser, bills } = useApp();
+  const { activeTab, setActiveTab, currentUser, bills, approachingReminders } = useApp();
   const isOwner = currentUser.role === 'owner';
 
   // Section collapse states
@@ -63,8 +65,8 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-[#EBEAE6] border-r border-[#141414] min-h-[calc(100vh-3.5rem)] flex flex-col justify-between p-2.5 shrink-0 select-none">
-      <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-6rem)] pr-1 custom-scrollbar">
+    <aside className="hidden lg:flex w-64 bg-[#EBEAE6] border-r border-[#141414] min-h-[calc(100vh-3.5rem)] flex-col justify-between p-2.5 shrink-0 select-none">
+      <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-10rem)] pr-1 custom-scrollbar">
         {/* 1. Dashboard */}
         <button
           onClick={() => setActiveTab('dashboard')}
@@ -172,6 +174,19 @@ export const Sidebar: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* 4.1. Reminders */}
+        <button onClick={() => setActiveTab('reminders')} className={navItemClass('reminders')}>
+          <div className="flex items-center gap-2">
+            <Bell className="w-3.5 h-3.5 text-amber-700" />
+            <span>ভাড়া রিমাইন্ডার (Reminders)</span>
+          </div>
+          {approachingReminders.length > 0 && (
+            <span className="font-mono-data text-[10px] bg-amber-200 text-amber-900 border border-amber-400 px-1.5 py-0.2 font-bold rounded">
+              {approachingReminders.length}
+            </span>
+          )}
+        </button>
 
         {/* 5. Payments (Add Payment, Payment History, Receipts) */}
         <div className="pt-1.5">
@@ -297,6 +312,12 @@ export const Sidebar: React.FC = () => {
                   <span>ভাড়াটিয়া স্টেটমেন্ট</span>
                 </div>
               </button>
+              <button onClick={() => setActiveTab('reports-cashbook-statement')} className={subItemClass('reports-cashbook-statement')}>
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-[#144A29]" />
+                  <span>ক্যাশ বুক স্টেটমেন্ট</span>
+                </div>
+              </button>
               <button onClick={() => setActiveTab('reports-yearly')} className={subItemClass('reports-yearly')}>
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-3.5 h-3.5" />
@@ -307,27 +328,17 @@ export const Sidebar: React.FC = () => {
           )}
         </div>
 
-        {/* 9. Users (Owner only) */}
+        {/* 9. Users */}
         <div className="pt-1.5">
-          {isOwner ? (
-            <button onClick={() => setActiveTab('users')} className={navItemClass('users')}>
-              <div className="flex items-center gap-2">
-                <UserCog className="w-3.5 h-3.5" />
-                <span>ব্যবহারকারী (Users)</span>
-              </div>
-              <span className="font-mono-data text-[9px] bg-[#DDDCD7] text-[#141414] border border-[#141414]/30 px-1 py-0.2 uppercase">
-                Owner
-              </span>
-            </button>
-          ) : (
-            <div className="px-2.5 py-1.5 text-xs text-[#141414]/40 flex items-center justify-between border border-dashed border-[#141414]/20 bg-[#DDDCD7]/30 cursor-not-allowed">
-              <div className="flex items-center gap-2">
-                <UserCog className="w-3.5 h-3.5 opacity-50" />
-                <span>ব্যবহারকারী (Users)</span>
-              </div>
-              <Shield className="w-3 h-3 text-[#141414]/40" />
+          <button onClick={() => setActiveTab('users')} className={navItemClass('users')}>
+            <div className="flex items-center gap-2">
+              <UserCog className="w-3.5 h-3.5" />
+              <span>ব্যবহারকারী ও রোল (Users)</span>
             </div>
-          )}
+            <span className="font-mono-data text-[9px] bg-[#D2E3D8] text-[#144A29] border border-[#144A29]/30 px-1 py-0.2 uppercase">
+              Active
+            </span>
+          </button>
         </div>
 
         {/* 10. Activity Log */}
@@ -338,44 +349,42 @@ export const Sidebar: React.FC = () => {
           </div>
         </button>
 
-        {/* 11. Settings (Owner only) */}
-        {isOwner ? (
-          <button onClick={() => setActiveTab('settings')} className={navItemClass('settings')}>
-            <div className="flex items-center gap-2">
-              <Settings className="w-3.5 h-3.5" />
-              <span>সেটিংস (Settings)</span>
-            </div>
-          </button>
-        ) : (
-          <div className="px-2.5 py-1.5 text-xs text-[#141414]/40 flex items-center justify-between border border-dashed border-[#141414]/20 bg-[#DDDCD7]/30 cursor-not-allowed">
-            <div className="flex items-center gap-2">
-              <Settings className="w-3.5 h-3.5 opacity-50" />
-              <span>সেটিংস (Settings)</span>
-            </div>
-            <Shield className="w-3 h-3 text-[#141414]/40" />
+        {/* 11. Settings */}
+        <button onClick={() => setActiveTab('settings')} className={navItemClass('settings')}>
+          <div className="flex items-center gap-2">
+            <Settings className="w-3.5 h-3.5" />
+            <span>সেটিংস ও প্রপার্টি (Settings)</span>
           </div>
-        )}
+          <span className="font-mono-data text-[9px] bg-[#D2E3D8] text-[#144A29] border border-[#144A29]/30 px-1 py-0.2 uppercase">
+            Active
+          </span>
+        </button>
       </div>
 
-      {/* Footer Role Notice */}
-      <div className="pt-2.5 mt-2 border-t border-[#141414]/20 font-mono-data text-[11px] text-[#141414]">
-        <div className="flex items-center justify-between">
-          <span className="font-bold truncate">{currentUser.name}</span>
-          <span
-            className={`px-1 py-0.2 text-[10px] font-bold border ${
-              isOwner
-                ? 'bg-[#EBDCB2] text-[#5C4300] border-[#8C6600]/40'
-                : 'bg-[#D2E3D8] text-[#144A29] border-[#144A29]/30'
-            }`}
-          >
-            {currentUser.role.toUpperCase()}
-          </span>
+      {/* PWA Install & Footer */}
+      <div className="space-y-2 pt-2 border-t border-[#141414]/20">
+        <PWAInstallButton variant="sidebar" />
+
+        {/* Footer Role Notice */}
+        <div className="font-mono-data text-[11px] text-[#141414] pt-1">
+          <div className="flex items-center justify-between">
+            <span className="font-bold truncate">{currentUser.name}</span>
+            <span
+              className={`px-1 py-0.2 text-[10px] font-bold border ${
+                isOwner
+                  ? 'bg-[#EBDCB2] text-[#5C4300] border-[#8C6600]/40'
+                  : 'bg-[#D2E3D8] text-[#144A29] border-[#144A29]/30'
+              }`}
+            >
+              {currentUser.role.toUpperCase()}
+            </span>
+          </div>
+          <p className="text-[10px] text-[#141414]/60 mt-1 font-sans">
+            {isOwner
+              ? 'পূর্ণ নিয়ন্ত্রণ ও রিপোর্ট সুবিধা সক্রিয়'
+              : 'ম্যানেজার অ্যাক্সেস (এন্ট্রি ও বিলিং)'}
+          </p>
         </div>
-        <p className="text-[10px] text-[#141414]/60 mt-1 font-sans">
-          {isOwner
-            ? 'পূর্ণ নিয়ন্ত্রণ ও রিপোর্ট সুবিধা সক্রিয়'
-            : 'ম্যানেজার অ্যাক্সেস (এন্ট্রি ও বিলিং)'}
-        </p>
       </div>
     </aside>
   );

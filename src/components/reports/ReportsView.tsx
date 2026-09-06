@@ -21,7 +21,15 @@ import {
   PieChart as PieIcon,
   Download,
   Users,
+  BookOpen,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
+import {
+  compileCashTransactions,
+  getPeriodCashSummary,
+  exportCashBookCSV,
+} from '../../utils/cashBookHelper';
 import {
   ResponsiveContainer,
   BarChart,
@@ -35,6 +43,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { ReportPrintPreviewModal, ReportType } from '../modals/ReportPrintPreviewModal';
 
 interface ReportsViewProps {
   initialReportType?:
@@ -43,7 +52,8 @@ interface ReportsViewProps {
     | 'profit_loss'
     | 'due'
     | 'tenant_statement'
-    | 'yearly';
+    | 'yearly'
+    | 'cashbook_statement';
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'profit_loss' }) => {
@@ -51,6 +61,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
     bills,
     payments,
     expenses,
+    cashBookEntries,
+    settings,
+    currentUser,
     tenants,
     flats,
     shops,
@@ -62,10 +75,19 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
   } = useApp();
 
   const [activeReport, setActiveReport] = useState<
-    'income' | 'expense' | 'profit_loss' | 'due' | 'tenant_statement' | 'yearly'
+    'income' | 'expense' | 'profit_loss' | 'due' | 'tenant_statement' | 'yearly' | 'cashbook_statement'
   >(initialReportType);
 
   const [tenantSearch, setTenantSearch] = useState('');
+  const [cashSearchTerm, setCashSearchTerm] = useState('');
+  const [cashTypeFilter, setCashTypeFilter] = useState<'all' | 'inflow' | 'outflow'>('all');
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+  const [previewReportType, setPreviewReportType] = useState<ReportType>('profit_loss');
+
+  const openPrintPreview = (type?: ReportType) => {
+    setPreviewReportType(type || (activeReport as ReportType));
+    setIsPrintPreviewOpen(true);
+  };
 
   // Calculations for selected Month+Year
   const monthPayments = payments.filter((p) => p.month === selectedMonth && p.year === selectedYear);
@@ -175,11 +197,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
           </div>
 
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-[#141414] bg-[#EBEAE6] hover:bg-[#DDDCD7] border border-[#141414] transition-colors no-print cursor-pointer"
+            onClick={() => openPrintPreview(activeReport as ReportType)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-[#144A29] hover:bg-[#0E351D] border border-[#141414] shadow-xs transition-colors no-print cursor-pointer"
+            title="রিপোর্টের A4 প্রিন্ট প্রিভিউ দেখুন ও প্রিন্ট করুন"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>প্রিন্ট রিপোর্ট</span>
+            <span>প্রিন্ট প্রিভিউ ও প্রিন্ট</span>
           </button>
         </div>
       </div>
@@ -247,6 +270,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
         </button>
 
         <button
+          onClick={() => setActiveReport('cashbook_statement')}
+          className={`px-3 py-1.5 text-xs font-bold transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            activeReport === 'cashbook_statement'
+              ? 'border-[#141414] text-[#141414] bg-[#EBEAE6]'
+              : 'border-transparent text-[#141414]/60 hover:text-[#141414]'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 text-[#144A29]" />
+          <span>ক্যাশ বুক স্টেটমেন্ট (Cash Book)</span>
+        </button>
+
+        <button
           onClick={() => setActiveReport('yearly')}
           className={`px-3 py-1.5 text-xs font-bold transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
             activeReport === 'yearly'
@@ -273,12 +308,22 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
                   সময়কাল: {MONTHS_BN[selectedMonth]} {selectedYear}
                 </p>
               </div>
-              <div
-                className={`px-2.5 py-0.5 border text-xs font-bold ${
-                  isProfitable ? 'bg-[#E0F2E9] border-[#141414] text-[#14532D]' : 'bg-[#FCE8E8] border-[#141414] text-[#801414]'
-                }`}
-              >
-                {isProfitable ? 'লাভজনক (PROFITABLE)' : 'লোকসান (LOSS)'}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openPrintPreview('profit_loss')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#141414] bg-[#EBEAE6] hover:bg-[#DDDCD7] border border-[#141414] transition-colors no-print cursor-pointer"
+                  title="লাভ-ক্ষতি রিপোর্টের প্রিন্ট প্রিভিউ দেখুন"
+                >
+                  <Printer className="w-3.5 h-3.5 text-[#144A29]" />
+                  <span>প্রিন্ট প্রিভিউ</span>
+                </button>
+                <div
+                  className={`px-2.5 py-0.5 border text-xs font-bold ${
+                    isProfitable ? 'bg-[#E0F2E9] border-[#141414] text-[#14532D]' : 'bg-[#FCE8E8] border-[#141414] text-[#801414]'
+                  }`}
+                >
+                  {isProfitable ? 'লাভজনক (PROFITABLE)' : 'লোকসান (LOSS)'}
+                </div>
               </div>
             </div>
 
@@ -355,8 +400,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
               </h3>
               <p className="text-[11px] text-[#141414]/70">মোট আদায় হয়েছে {monthPayments.length}টি পেমেন্ট</p>
             </div>
-            <div className="text-base font-bold text-[#14532D]">
-              {formatCurrency(totalIncome)}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => openPrintPreview('income')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#141414] bg-[#EBEAE6] hover:bg-[#DDDCD7] border border-[#141414] transition-colors no-print cursor-pointer"
+                title="আয় রিপোর্টের প্রিন্ট প্রিভিউ দেখুন"
+              >
+                <Printer className="w-3.5 h-3.5 text-[#144A29]" />
+                <span>প্রিন্ট প্রিভিউ</span>
+              </button>
+              <div className="text-base font-bold text-[#14532D]">
+                {formatCurrency(totalIncome)}
+              </div>
             </div>
           </div>
 
@@ -412,8 +467,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
               </h3>
               <p className="text-[11px] text-[#141414]/70">মোট খরচ এন্ট্রি: {monthExpenses.length}টি</p>
             </div>
-            <div className="text-base font-bold text-[#801414]">
-              {formatCurrency(totalExpense)}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => openPrintPreview('expense')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#141414] bg-[#EBEAE6] hover:bg-[#DDDCD7] border border-[#141414] transition-colors no-print cursor-pointer"
+                title="ব্যয় রিপোর্টের প্রিন্ট প্রিভিউ দেখুন"
+              >
+                <Printer className="w-3.5 h-3.5 text-[#801414]" />
+                <span>প্রিন্ট প্রিভিউ</span>
+              </button>
+              <div className="text-base font-bold text-[#801414]">
+                {formatCurrency(totalExpense)}
+              </div>
             </div>
           </div>
 
@@ -438,7 +503,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
                   monthExpenses.map((e) => (
                     <tr key={e.id} className="hover:bg-[#EBEAE6]">
                       <td className="px-3.5 py-2.5 font-bold text-[#141414]">
-                        {e.expenseNumber} <span className="font-normal text-[11px] text-[#141414]/60">({e.date})</span>
+                        {e.voucherNumber || (e as any).expenseNumber || `EXP-${e.id}`} <span className="font-normal text-[11px] text-[#141414]/60">({e.date})</span>
                       </td>
                       <td className="px-3.5 py-2.5">
                         <span className="px-1.5 py-0.2 border border-[#141414]/30 bg-[#DDDCD7] font-bold text-[#141414] text-[10px]">
@@ -473,8 +538,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
                 মোট বকেয়া রয়েছে {dueTenantsList.length} জন ভাড়াটিয়ার কাছে
               </p>
             </div>
-            <div className="text-base font-bold text-[#801414]">
-              {formatCurrency(dueTenantsList.reduce((acc, t) => acc + t.due, 0))}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => openPrintPreview('due')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#801414] bg-white hover:bg-[#F4F3F0] border border-[#801414]/40 transition-colors no-print cursor-pointer"
+                title="বকেয়া রিপোর্টের প্রিন্ট প্রিভিউ দেখুন"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>প্রিন্ট প্রিভিউ</span>
+              </button>
+              <div className="text-base font-bold text-[#801414]">
+                {formatCurrency(dueTenantsList.reduce((acc, t) => acc + t.due, 0))}
+              </div>
             </div>
           </div>
 
@@ -658,6 +733,294 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ initialReportType = 'p
             </div>
           </div>
         </div>
+      )}
+
+      {/* REPORT 7: Cash Book Statement */}
+      {activeReport === 'cashbook_statement' && (() => {
+        const allCompiled = compileCashTransactions(
+          payments,
+          expenses,
+          cashBookEntries,
+          settings.openingCashBalance || 250000
+        );
+        const { filteredTransactions, summary } = getPeriodCashSummary(allCompiled, {
+          month: selectedMonth,
+          year: selectedYear,
+          baseOpeningBalance: settings.openingCashBalance || 250000,
+        });
+
+        const displayTx = filteredTransactions.filter((t) => {
+          const matchesType =
+            cashTypeFilter === 'all' ||
+            (cashTypeFilter === 'inflow' && t.type === 'inflow') ||
+            (cashTypeFilter === 'outflow' && t.type === 'outflow');
+          const searchLower = cashSearchTerm.toLowerCase();
+          const matchesSearch =
+            !cashSearchTerm ||
+            t.description.toLowerCase().includes(searchLower) ||
+            t.sourceOrPayee.toLowerCase().includes(searchLower) ||
+            t.referenceNo.toLowerCase().includes(searchLower) ||
+            t.category.toLowerCase().includes(searchLower);
+          return matchesType && matchesSearch;
+        });
+
+        return (
+          <div className="space-y-4 font-mono-data">
+            {/* Top Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <div className="bg-[#F4F3F0] p-3 border border-[#141414]">
+                <span className="text-[10px] font-bold text-[#141414]/70 uppercase block">
+                  প্রারম্ভিক ক্যাশ (Opening)
+                </span>
+                <div className="text-base sm:text-lg font-bold text-[#141414] mt-0.5">
+                  {formatCurrency(summary.periodOpeningBalance)}
+                </div>
+                <span className="text-[9px] text-[#141414]/60 block mt-0.5">
+                  {MONTHS_BN[selectedMonth]} মাসের শুরুতে
+                </span>
+              </div>
+
+              <div className="bg-[#E2EFE7] p-3 border border-[#141414]">
+                <span className="text-[10px] font-bold text-[#144A29] uppercase flex items-center gap-1">
+                  <ArrowDownLeft className="w-3 h-3" />
+                  <span>মোট জমা (Inflow)</span>
+                </span>
+                <div className="text-base sm:text-lg font-bold text-[#144A29] mt-0.5">
+                  +{formatCurrency(summary.totalInflow)}
+                </div>
+                <span className="text-[9px] text-[#144A29] block mt-0.5">
+                  {toBengaliNumber(summary.inflowCount)} টি নগদ/ব্যাংক প্রাপ্তি
+                </span>
+              </div>
+
+              <div className="bg-[#FCE8E8] p-3 border border-[#141414]">
+                <span className="text-[10px] font-bold text-[#801414] uppercase flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" />
+                  <span>মোট খরচ (Outflow)</span>
+                </span>
+                <div className="text-base sm:text-lg font-bold text-[#801414] mt-0.5">
+                  -{formatCurrency(summary.totalOutflow)}
+                </div>
+                <span className="text-[9px] text-[#801414] block mt-0.5">
+                  {toBengaliNumber(summary.outflowCount)} টি ব্যয় ভাউচার
+                </span>
+              </div>
+
+              <div className="bg-[#EBEAE6] p-3 border border-[#141414]">
+                <span className="text-[10px] font-bold text-[#141414]/70 uppercase block">
+                  নিট ক্যাশ ফ্লো (Net)
+                </span>
+                <div
+                  className={`text-base sm:text-lg font-bold mt-0.5 ${
+                    summary.netCashFlow >= 0 ? 'text-[#144A29]' : 'text-[#801414]'
+                  }`}
+                >
+                  {summary.netCashFlow >= 0 ? '+' : ''}
+                  {formatCurrency(summary.netCashFlow)}
+                </div>
+                <span className="text-[9px] text-[#141414]/60 block mt-0.5">আয় ও ব্যয়ের ব্যবধান</span>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 bg-[#141414] text-[#E4E3E0] p-3 border border-[#141414]">
+                <span className="text-[10px] font-bold text-[#DDDCD7] uppercase block">
+                  সমাপনী স্থিতি (Closing)
+                </span>
+                <div className="text-base sm:text-lg font-bold text-white mt-0.5">
+                  {formatCurrency(summary.periodClosingBalance)}
+                </div>
+                <span className="text-[9px] text-[#DDDCD7] block mt-0.5">হাতে অবশিষ্ট নগদ টাকা</span>
+              </div>
+            </div>
+
+            {/* Filter Bar & Export */}
+            <div className="bg-[#F4F3F0] p-3 border border-[#141414] flex flex-col sm:flex-row gap-2.5 items-center justify-between no-print text-xs">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-3.5 h-3.5 text-[#141414]/50 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="বিবরণ বা রেফারেন্স দিয়ে খুঁজুন..."
+                  value={cashSearchTerm}
+                  onChange={(e) => setCashSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1 bg-[#EBEAE6] border border-[#141414]/30 outline-none focus:border-[#141414]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label="ক্যাশ লেনদেনের ধরন ফিল্টার"
+                  value={cashTypeFilter}
+                  onChange={(e: any) => setCashTypeFilter(e.target.value)}
+                  className="px-2 py-1 bg-[#EBEAE6] border border-[#141414]/30 text-[#141414] font-bold outline-none cursor-pointer"
+                >
+                  <option value="all">সকল লেনদেন ({filteredTransactions.length})</option>
+                  <option value="inflow">শুধুমাত্র জমা ({summary.inflowCount})</option>
+                  <option value="outflow">শুধুমাত্র খরচ ({summary.outflowCount})</option>
+                </select>
+
+                <button
+                  onClick={() => exportCashBookCSV(displayTx, `CashBook_Statement_${selectedMonth}_${selectedYear}.csv`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#EBEAE6] hover:bg-[#DDDCD7] border border-[#141414]/40 font-bold cursor-pointer transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>এক্সেল (CSV)</span>
+                </button>
+
+                <button
+                  onClick={() => openPrintPreview('cashbook_statement')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#141414] hover:bg-[#2A2A28] text-[#E4E3E0] font-bold border border-[#141414] cursor-pointer shadow-xs transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>প্রিন্ট স্টেটমেন্ট ও প্রিভিউ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Statement Table */}
+            <div id="printable-cashbook" className="bg-[#F4F3F0] border border-[#141414] overflow-hidden printable-content">
+              {/* Header on Paper Print */}
+              <div className="hidden print:block p-4 border-b border-[#141414] text-center">
+                <h1 className="text-xl font-serif-heading font-bold text-[#141414]">
+                  {settings.propertyNameBn || settings.propertyName}
+                </h1>
+                <p className="text-xs font-mono-data text-[#141414]/80">{settings.addressBn || settings.address}</p>
+                <div className="mt-2 inline-block px-3 py-1 bg-[#141414] text-white font-bold text-xs">
+                  ক্যাশ বুক ও অডিট স্টেটমেন্ট — {MONTHS_BN[selectedMonth]} {selectedYear}
+                </div>
+                <div className="flex justify-between text-[10px] font-mono-data mt-2 pt-2 border-t border-[#141414]/20">
+                  <span>প্রারম্ভিক স্থিতি: {formatCurrency(summary.periodOpeningBalance)}</span>
+                  <span>মোট জমা: +{formatCurrency(summary.totalInflow)}</span>
+                  <span>মোট খরচ: -{formatCurrency(summary.totalOutflow)}</span>
+                  <span className="font-bold">সমাপনী স্থিতি: {formatCurrency(summary.periodClosingBalance)}</span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="tech-grid-table w-full text-left text-xs font-mono-data">
+                  <thead className="bg-[#DDDCD7] border-b border-[#141414] text-[#141414] font-bold uppercase text-[10px]">
+                    <tr>
+                      <th className="px-2.5 py-2 text-center w-10 border-r border-[#141414]/20">ক্র.</th>
+                      <th className="px-2.5 py-2 border-r border-[#141414]/20 whitespace-nowrap">তারিখ</th>
+                      <th className="px-2.5 py-2 border-r border-[#141414]/20">বিবরণ ও উৎস/প্রাপক</th>
+                      <th className="px-2.5 py-2 border-r border-[#141414]/20 whitespace-nowrap">রেফারেন্স নং</th>
+                      <th className="px-2.5 py-2 border-r border-[#141414]/20 text-center whitespace-nowrap">মাধ্যম</th>
+                      <th className="px-2.5 py-2 text-right border-r border-[#141414]/20 whitespace-nowrap">
+                        জমা / Inflow (৳)
+                      </th>
+                      <th className="px-2.5 py-2 text-right border-r border-[#141414]/20 whitespace-nowrap">
+                        খরচ / Outflow (৳)
+                      </th>
+                      <th className="px-2.5 py-2 text-right whitespace-nowrap">অবশিষ্ট ব্যালেন্স (৳)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#141414]/15">
+                    {/* Opening Balance row */}
+                    <tr className="bg-[#EBEAE6] font-bold">
+                      <td className="px-2.5 py-2 text-center border-r border-[#141414]/20">--</td>
+                      <td className="px-2.5 py-2 border-r border-[#141414]/20 whitespace-nowrap">
+                        ০১ {MONTHS_BN[selectedMonth]}
+                      </td>
+                      <td colSpan={3} className="px-2.5 py-2 border-r border-[#141414]/20">
+                        প্রারম্ভিক নগদ স্থিতি (Opening Balance B/F)
+                      </td>
+                      <td className="px-2.5 py-2 text-right border-r border-[#141414]/20 text-[#141414]/40">---</td>
+                      <td className="px-2.5 py-2 text-right border-r border-[#141414]/20 text-[#141414]/40">---</td>
+                      <td className="px-2.5 py-2 text-right font-bold text-[#141414]">
+                        {formatCurrency(summary.periodOpeningBalance)}
+                      </td>
+                    </tr>
+
+                    {displayTx.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-10 text-[#141414]/50 font-sans">
+                          {MONTHS_BN[selectedMonth]} {selectedYear} মাসে কোন ক্যাশ লেনদেনের রেকর্ড পাওয়া যায়নি।
+                        </td>
+                      </tr>
+                    ) : (
+                      displayTx.map((t, index) => {
+                        const isInflow = t.type === 'inflow';
+                        const methodLabel =
+                          t.paymentMethod === 'cash'
+                            ? 'নগদ'
+                            : t.paymentMethod === 'bank'
+                            ? 'ব্যাংক'
+                            : t.paymentMethod === 'mobile_banking'
+                            ? 'বিকাশ/নগদ'
+                            : t.paymentMethod;
+
+                        return (
+                          <tr key={t.id} className="hover:bg-[#EBEAE6] transition-colors">
+                            <td className="px-2.5 py-2 text-center text-[#141414]/70 border-r border-[#141414]/20">
+                              {toBengaliNumber(index + 1)}
+                            </td>
+                            <td className="px-2.5 py-2 font-semibold whitespace-nowrap border-r border-[#141414]/20">
+                              {t.date}
+                            </td>
+                            <td className="px-2.5 py-2 border-r border-[#141414]/20 font-sans">
+                              <div className="font-bold text-[#141414]">{t.description}</div>
+                              <div className="text-[10px] text-[#141414]/60 font-mono-data mt-0.5">
+                                ক্যাটাগরি: {t.category} • উৎস/প্রাপক: {t.sourceOrPayee}
+                              </div>
+                            </td>
+                            <td className="px-2.5 py-2 text-[#141414]/80 text-[11px] border-r border-[#141414]/20 whitespace-nowrap">
+                              {t.referenceNo}
+                            </td>
+                            <td className="px-2.5 py-2 border-r border-[#141414]/20 text-center text-[10px] whitespace-nowrap">
+                              <span className="px-1.5 py-0.5 bg-[#EBEAE6] border border-[#141414]/20 font-semibold">
+                                {methodLabel}
+                              </span>
+                            </td>
+                            <td className="px-2.5 py-2 text-right border-r border-[#141414]/20 font-bold text-[#144A29] whitespace-nowrap">
+                              {isInflow ? `+${formatCurrency(t.amount)}` : '---'}
+                            </td>
+                            <td className="px-2.5 py-2 text-right border-r border-[#141414]/20 font-bold text-[#801414] whitespace-nowrap">
+                              {!isInflow ? `-${formatCurrency(t.amount)}` : '---'}
+                            </td>
+                            <td className="px-2.5 py-2 text-right font-bold text-[#141414] whitespace-nowrap">
+                              {formatCurrency(t.runningBalance)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+
+                    {/* Total Summary Row */}
+                    <tr className="bg-[#DDDCD7] border-t-2 border-[#141414] font-bold text-xs">
+                      <td colSpan={5} className="px-3 py-2.5 text-right uppercase border-r border-[#141414]/30">
+                        মোট যোগফল ({MONTHS_BN[selectedMonth]} {selectedYear}):
+                      </td>
+                      <td className="px-2.5 py-2.5 text-right text-[#144A29] border-r border-[#141414]/30">
+                        +{formatCurrency(summary.totalInflow)}
+                      </td>
+                      <td className="px-2.5 py-2.5 text-right text-[#801414] border-r border-[#141414]/30">
+                        -{formatCurrency(summary.totalOutflow)}
+                      </td>
+                      <td className="px-2.5 py-2.5 text-right text-[#141414] bg-[#C8C7C2]">
+                        {formatCurrency(summary.periodClosingBalance)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Printable Signatures Strip */}
+              <div className="hidden print:grid grid-cols-3 gap-6 text-center text-xs font-mono-data pt-10 pb-4 px-6">
+                <div className="border-t border-[#141414] pt-1">প্রস্তুতকারী / ক্যাশিয়ার</div>
+                <div className="border-t border-[#141414] pt-1">ম্যানেজার / নিরীক্ষক</div>
+                <div className="border-t border-[#141414] pt-1">অনুমোদনকারী (মালিক)</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Report Print Preview Modal */}
+      {isPrintPreviewOpen && (
+        <ReportPrintPreviewModal
+          initialReportType={previewReportType}
+          initialMonth={selectedMonth}
+          initialYear={selectedYear}
+          onClose={() => setIsPrintPreviewOpen(false)}
+        />
       )}
     </div>
   );

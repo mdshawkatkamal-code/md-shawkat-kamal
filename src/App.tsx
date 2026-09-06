@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
+import { MobileDrawer } from './components/layout/MobileDrawer';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
+import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { FlatsView } from './components/properties/FlatsView';
 import { ShopsView } from './components/properties/ShopsView';
@@ -14,6 +17,7 @@ import { ReportsView } from './components/reports/ReportsView';
 import { UsersView } from './components/users/UsersView';
 import { ActivityLogView } from './components/activity/ActivityLogView';
 import { SettingsView } from './components/settings/SettingsView';
+import { RentRemindersView } from './components/reminders/RentRemindersView';
 import { ReceiptModal } from './components/modals/ReceiptModal';
 import { StatementModal } from './components/modals/StatementModal';
 
@@ -25,6 +29,8 @@ const MainContent: React.FC = () => {
     selectedStatementModal,
     setSelectedStatementModal,
   } = useApp();
+
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const renderView = () => {
     switch (activeTab) {
@@ -39,6 +45,9 @@ const MainContent: React.FC = () => {
 
       case 'tenants':
         return <TenantsView />;
+
+      case 'reminders':
+        return <RentRemindersView />;
 
       case 'billing-generate':
         return <BillingView initialSubTab="generate" />;
@@ -74,6 +83,8 @@ const MainContent: React.FC = () => {
         return <ReportsView initialReportType="due" />;
       case 'reports-tenant-statement':
         return <ReportsView initialReportType="tenant_statement" />;
+      case 'reports-cashbook-statement':
+        return <ReportsView initialReportType="cashbook_statement" />;
       case 'reports-yearly':
         return <ReportsView initialReportType="yearly" />;
 
@@ -92,19 +103,31 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#E4E3E0] flex flex-col text-[#141414] font-sans antialiased">
-      {/* Top Navbar */}
-      <Navbar />
+    <div className="min-h-screen bg-[#E4E3E0] flex flex-col text-[#141414] font-sans antialiased selection:bg-[#141414] selection:text-[#E4E3E0]">
+      {/* Top Navbar with mobile hamburger trigger & PWA install button */}
+      <Navbar onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)} />
 
       <div className="flex-1 flex overflow-hidden border-t border-[#141414]/20">
-        {/* Left Sidebar */}
+        {/* Left Sidebar (visible on desktop/tablet lg+) */}
         <Sidebar />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 bg-[#E4E3E0]">
+        {/* Main Content Area (with bottom padding for mobile navigation bar) */}
+        <main className="flex-1 overflow-y-auto p-2.5 sm:p-5 lg:p-6 pb-20 lg:pb-6 bg-[#E4E3E0]">
           <div className="max-w-[1600px] mx-auto">{renderView()}</div>
         </main>
       </div>
+
+      {/* Mobile Slide-out Drawer Menu */}
+      <MobileDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+      />
+
+      {/* Mobile Bottom Navigation Bar (< lg) */}
+      <MobileBottomNav onOpenMenu={() => setIsMobileDrawerOpen(true)} />
+
+      {/* Connectivity & Offline State Indicator */}
+      <OfflineIndicator />
 
       {/* Global Modals */}
       {selectedReceiptModal && (

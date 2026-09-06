@@ -14,6 +14,7 @@ import {
   Receipt,
   FileText,
   Edit2,
+  Trash2,
   Archive,
   Eye,
   X,
@@ -31,7 +32,9 @@ export const TenantsView: React.FC = () => {
     payments,
     addTenant,
     updateTenant,
+    deleteTenant,
     archiveTenant,
+    clearAllTenants,
     setSelectedReceiptModal,
     setSelectedStatementModal,
     setActiveTab,
@@ -60,7 +63,7 @@ export const TenantsView: React.FC = () => {
   const [unitType, setUnitType] = useState<'flat' | 'shop'>('flat');
   const [unitId, setUnitId] = useState('');
   const [monthlyRent, setMonthlyRent] = useState(22000);
-  const [agreementStart, setAgreementStart] = useState('2025-01-01');
+  const [agreementStart, setAgreementStart] = useState('2026-01-01');
   const [agreementEnd, setAgreementEnd] = useState('2026-12-31');
   const [securityDeposit, setSecurityDeposit] = useState(44000);
   const [emergencyName, setEmergencyName] = useState('');
@@ -72,20 +75,25 @@ export const TenantsView: React.FC = () => {
     setName('');
     setPhone('');
     setEmail('');
-    setAddress('House 12, Road 4, Sector 4, Uttara, Dhaka');
-    setNid('1985269123456');
+    setAddress('');
+    setNid('');
     setUnitType('flat');
     
     // Find first vacant flat
     const vacantFlat = flats.find((f) => f.status === 'vacant');
     setUnitId(vacantFlat ? vacantFlat.id : flats[0]?.id || '');
     setMonthlyRent(vacantFlat ? vacantFlat.rent : 22000);
-    setAgreementStart('2026-01-01');
-    setAgreementEnd('2026-12-31');
+    
+    const today = new Date().toISOString().split('T')[0];
+    setAgreementStart(today);
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    setAgreementEnd(nextYear.toISOString().split('T')[0]);
+    
     setSecurityDeposit((vacantFlat?.rent || 22000) * 2);
-    setEmergencyName('Brother / Relative');
-    setEmergencyRelation('Brother');
-    setEmergencyPhone('01799887766');
+    setEmergencyName('');
+    setEmergencyRelation('');
+    setEmergencyPhone('');
     setIsEditModalOpen(true);
   };
 
@@ -145,7 +153,7 @@ export const TenantsView: React.FC = () => {
     const payload = {
       name: name.trim(),
       phone: phone.trim(),
-      email: email.trim() || `${phone.trim()}@noortowerbd.com`,
+      email: email.trim() || `${phone.trim()}@tultulvilla.com`,
       address: address.trim(),
       nid: nid.trim(),
       unitType,
@@ -169,6 +177,19 @@ export const TenantsView: React.FC = () => {
       addTenant(payload);
     }
     setIsEditModalOpen(false);
+  };
+
+  const handleDeleteTenant = (t: Tenant) => {
+    if (
+      confirm(
+        `সতর্কতা: আপনি কি নিশ্চিতভাবে ভাড়াটিয়া "${t.name}" (${t.unitNumber}) এর তথ্য স্থায়ীভাবে মুছে ফেলতে চান?\n\nএর ফলে সংশ্লিষ্ট ${t.unitType === 'flat' ? 'ফ্ল্যাট' : 'দোকান'}টি খালি (Vacant) হয়ে যাবে।`
+      )
+    ) {
+      deleteTenant(t.id);
+      if (selectedTenant?.id === t.id) {
+        setSelectedTenant(null);
+      }
+    }
   };
 
   const handleArchive = (t: Tenant) => {
@@ -204,13 +225,34 @@ export const TenantsView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono-data font-bold text-[#E4E3E0] bg-[#141414] hover:bg-[#2A2A28] border border-[#141414] transition-colors cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>নতুন ভাড়াটিয়া যোগ করুন</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {tenants.length > 0 && (
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    'আপনি কি নিশ্চিতভাবে বর্তমান সকল ভাড়াটিয়ার তথ্য মুছে ফেলতে চান? এর ফলে নতুন করে সবার নাম ও তথ্য এন্ট্রি করা যাবে।'
+                  )
+                ) {
+                  clearAllTenants();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono-data font-bold text-[#801414] bg-[#FCE8E8] hover:bg-[#F8D2D2] border border-[#801414]/40 transition-colors cursor-pointer"
+              title="সকল ভাড়াটিয়ার তথ্য মুছুন"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>সকল তথ্য মুছুন</span>
+            </button>
+          )}
+
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono-data font-bold text-[#E4E3E0] bg-[#144A29] hover:bg-[#103D22] border border-[#144A29] transition-colors cursor-pointer shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ নতুন ভাড়াটিয়া এন্ট্রি করুন</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search */}
@@ -271,7 +313,33 @@ export const TenantsView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#141414]/15 text-[#141414]">
-              {filteredTenants.map((tenant) => {
+              {filteredTenants.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-14 text-center bg-[#F4F3F0]">
+                    <div className="max-w-md mx-auto flex flex-col items-center justify-center space-y-3">
+                      <div className="w-12 h-12 bg-[#EBEAE6] border border-[#141414]/20 flex items-center justify-center text-[#141414]/60">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div className="text-sm font-bold text-[#141414]">
+                        {searchTerm ? 'কোন ভাড়াটিয়া পাওয়া যায়নি' : 'বর্তমানে কোন ভাড়াটিয়ার তথ্য সংরক্ষিত নেই'}
+                      </div>
+                      <p className="text-xs text-[#141414]/70 leading-relaxed font-sans">
+                        {searchTerm
+                          ? `"${searchTerm}" এর সাথে মিলে এমন কোন ভাড়াটিয়ার রেকর্ড পাওয়া যায়নি।`
+                          : 'পূর্ববর্তী সকল ভাড়াটিয়ার তথ্য মুছে ফেলা হয়েছে। এখন আপনি তুলতুল ভিলার ফ্ল্যাট ও দোকানগুলোর জন্য নতুন করে ভাড়াটিয়াদের নাম ও তথ্য এন্ট্রি করতে পারেন।'}
+                      </p>
+                      <button
+                        onClick={openAddModal}
+                        className="mt-2 inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-[#E4E3E0] bg-[#144A29] hover:bg-[#103D22] transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>প্রথম ভাড়াটিয়ার নাম এন্ট্রি করুন</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredTenants.map((tenant) => {
                 const tenantBills = bills.filter((b) => b.tenantId === tenant.id);
                 const totalBill = tenantBills.reduce((acc, b) => acc + b.totalAmount, 0);
                 const totalPaid = tenantBills.reduce((acc, b) => acc + b.paidAmount, 0);
@@ -349,23 +417,31 @@ export const TenantsView: React.FC = () => {
                         <button
                           onClick={() => openEditModal(tenant)}
                           className="p-1 text-[#141414]/70 hover:text-[#141414] hover:bg-[#DDDCD7] border border-transparent hover:border-[#141414]/30 cursor-pointer"
-                          title="সম্পাদনা"
+                          title="সম্পাদনা (Edit)"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
 
                         <button
                           onClick={() => handleArchive(tenant)}
-                          className="p-1 text-[#801414] hover:bg-[#FCE8E8] border border-transparent hover:border-[#801414]/30 cursor-pointer"
-                          title="চুক্তি সমাপ্ত / খালি করুন"
+                          className="p-1 text-[#805000] hover:bg-[#FFF8EE] border border-transparent hover:border-[#805000]/30 cursor-pointer"
+                          title="চুক্তি সমাপ্ত / খালি করুন (Archive)"
                         >
                           <Archive className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteTenant(tenant)}
+                          className="p-1 text-[#801414] hover:bg-[#FCE8E8] border border-transparent hover:border-[#801414]/30 cursor-pointer"
+                          title="স্থায়ীভাবে মুছুন (Delete)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
@@ -376,13 +452,13 @@ export const TenantsView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-[#141414]/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto font-sans">
           <div className="bg-[#F4F3F0] max-w-2xl w-full p-5 sm:p-6 border-2 border-[#141414] shadow-2xl my-8">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-[#141414]/20">
+            <div className="flex items-start justify-between pb-3 border-b border-[#141414]/20 gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#141414] text-[#E4E3E0] font-mono-data font-bold text-lg flex items-center justify-center border border-[#141414]">
+                <div className="w-10 h-10 bg-[#141414] text-[#E4E3E0] font-mono-data font-bold text-lg flex items-center justify-center border border-[#141414] shrink-0">
                   {selectedTenant.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-base font-serif-heading font-bold text-[#141414] flex items-center gap-2">
+                  <h3 className="text-base font-serif-heading font-bold text-[#141414] flex items-center gap-2 flex-wrap">
                     <span>{selectedTenant.name}</span>
                     <span className="text-xs font-mono-data bg-[#DDDCD7] text-[#141414] px-1.5 py-0.5 border border-[#141414]/30 font-bold">
                       {selectedTenant.unitNumber} ({selectedTenant.unitType.toUpperCase()})
@@ -394,12 +470,30 @@ export const TenantsView: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => setSelectedTenant(null)}
-                className="text-[#141414] hover:bg-[#DDDCD7] p-1 border border-transparent hover:border-[#141414]/30 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => openEditModal(selectedTenant)}
+                  className="px-2 py-1 text-xs font-mono-data font-bold text-[#141414] bg-[#DDDCD7] hover:bg-[#C8C7C2] border border-[#141414]/40 flex items-center gap-1 cursor-pointer"
+                  title="তথ্য সম্পাদন করুন"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">সম্পাদনা</span>
+                </button>
+                <button
+                  onClick={() => handleDeleteTenant(selectedTenant)}
+                  className="px-2 py-1 text-xs font-mono-data font-bold text-[#801414] bg-[#FCE8E8] hover:bg-[#FADADA] border border-[#801414]/40 flex items-center gap-1 cursor-pointer"
+                  title="ভাড়াটিয়া মুছুন"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">মুছুন</span>
+                </button>
+                <button
+                  onClick={() => setSelectedTenant(null)}
+                  className="text-[#141414] hover:bg-[#DDDCD7] p-1.5 border border-transparent hover:border-[#141414]/30 cursor-pointer ml-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Profile Tab Navigation */}
@@ -732,7 +826,7 @@ export const TenantsView: React.FC = () => {
                         ))
                       : shops.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.shopNumber} ({s.businessName || 'বাণিজ্যিক স্পেস'})
+                            {s.shopNumber} ({s.floor === 0 ? 'গ্রাউন্ড ফ্লোর' : '১ম তলা'} - {s.status === 'occupied' ? 'ভাড়াকৃত' : 'খালি'})
                           </option>
                         ))}
                   </select>
